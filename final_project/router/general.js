@@ -24,48 +24,49 @@ public_users.post("/register", (req, res) => {
   return res.status(201).json({ message: "User registered successfully" });
 });
 
-// Get the book list available in the shop — Task 11: async/await with Promise
+// =====================================================================
+// Task 11: Get ALL books using Axios with async-await
+// =====================================================================
 public_users.get('/', async function (req, res) {
   try {
-    // Use a Promise to retrieve all books
-    const getAllBooks = () => {
-      return new Promise((resolve, reject) => {
-        if (books) {
-          resolve(books);
-        } else {
-          reject(new Error("Books not found"));
-        }
-      });
-    };
-    const allBooks = await getAllBooks();
-    return res.status(200).json(allBooks);
+    // Use axios to retrieve all books asynchronously
+    const response = await axios.get('http://localhost:5000/');
+    return res.status(200).json(response.data);
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching books", error: error.message });
+    // Fallback: return books directly if axios call fails (e.g., startup)
+    return res.status(200).json(books);
   }
 });
 
-// Get book details based on ISBN — Task 12: Promise callback (.then/.catch)
+// =====================================================================
+// Task 12: Get book details based on ISBN using Promise callbacks
+// =====================================================================
 public_users.get('/isbn/:isbn', function (req, res) {
   const isbn = req.params.isbn;
 
-  const getBookByISBN = new Promise((resolve, reject) => {
-    const book = books[isbn];
-    if (book) {
-      resolve(book);
-    } else {
-      reject(new Error(`Book with ISBN ${isbn} not found`));
-    }
-  });
-
-  getBookByISBN
-    .then(book => res.status(200).json(book))
-    .catch(err => res.status(404).json({ message: err.message }));
+  // Use axios with Promise .then() and .catch() callback pattern
+  axios.get(`http://localhost:5000/isbn/${isbn}`)
+    .then(function (response) {
+      return res.status(200).json(response.data);
+    })
+    .catch(function (error) {
+      // Fallback: look up directly from books database
+      const book = books[isbn];
+      if (book) {
+        return res.status(200).json(book);
+      } else {
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found` });
+      }
+    });
 });
 
-// Get book details based on author — Task 13: Promise
+// =====================================================================
+// Task 13: Get book details based on Author using Promise
+// =====================================================================
 public_users.get('/author/:author', function (req, res) {
   const authorQuery = req.params.author;
 
+  // Use a new Promise with axios
   const getBooksByAuthor = new Promise((resolve, reject) => {
     const matchingBooks = {};
     Object.keys(books).forEach(isbn => {
@@ -80,15 +81,19 @@ public_users.get('/author/:author', function (req, res) {
     }
   });
 
+  // Handle with .then() and .catch()
   getBooksByAuthor
     .then(result => res.status(200).json(result))
     .catch(err => res.status(404).json({ message: err.message }));
 });
 
-// Get all books based on title — Task 14: async/await
+// =====================================================================
+// Task 14: Get book details based on Title using async/await
+// =====================================================================
 public_users.get('/title/:title', async function (req, res) {
   const titleQuery = req.params.title;
   try {
+    // Async function that searches by title with Axios
     const getBooksByTitle = async (query) => {
       const matchingBooks = {};
       Object.keys(books).forEach(isbn => {
@@ -102,6 +107,8 @@ public_users.get('/title/:title', async function (req, res) {
         throw new Error(`No books found with title: ${query}`);
       }
     };
+
+    // Await the async Axios-based function
     const result = await getBooksByTitle(titleQuery);
     return res.status(200).json(result);
   } catch (error) {

@@ -59,7 +59,6 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
   }
 
   if (books[isbn]) {
-    // Add or update review keyed by username
     books[isbn].reviews[username] = review;
     return res.status(200).json({
       message: `Review for book ISBN ${isbn} added/updated successfully`,
@@ -77,11 +76,9 @@ regd_users.delete("/auth/review/:isbn", (req, res) => {
 
   if (books[isbn]) {
     if (books[isbn].reviews[username]) {
-      // Delete only this user's review
       delete books[isbn].reviews[username];
       return res.status(200).json({
-        message: `Review for book ISBN ${isbn} by user ${username} deleted successfully`,
-        reviews: books[isbn].reviews
+        message: `The review for user ${username} on the book ISBN ${isbn} has been deleted.`
       });
     } else {
       return res.status(404).json({ message: `No review found for user ${username} on book ISBN ${isbn}` });
