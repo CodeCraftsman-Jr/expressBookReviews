@@ -10,6 +10,7 @@ const app = express();
 app.use(express.json());
 
 // Session middleware for /customer routes
+// The secret is used to sign the session ID cookie
 app.use("/customer", session({
   secret: "fingerprint_customer",
   resave: true,
@@ -25,20 +26,31 @@ app.use("/customer/auth/*", function auth(req, res, next) {
     // Verify the token using the same secret used to sign it
     jwt.verify(token, "access", (err, user) => {
       if (!err) {
+        // Attach user info to request for use in route handlers
         req.user = user;
-        next();
+        next(); // Proceed to next middleware/route handler
       } else {
+        // Token is invalid or expired
         return res.status(403).json({ message: "User not authenticated" });
       }
     });
   } else {
+    // No authorization session found
     return res.status(403).json({ message: "User not logged in" });
   }
 });
 
 const PORT = 5000;
 
+// Mount customer (authenticated) routes under /customer
 app.use("/customer", customer_routes);
+// Serve developer playground
+app.get("/playground", (req, res) => {
+  res.sendFile(__dirname + "/public/playground.html");
+});
+// Mount general (public) routes under /
 app.use("/", genl_routes);
 
-app.listen(PORT, () => console.log("Server is running"));
+// Start the server
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+

@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Express Book Reviews Developer Playground</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.5);
+      --success: #10b981;
+      --accent: #8b5cf6;
+      --font-sans: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glows */
+    .glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--primary-glow) 0%, rgba(0,0,0,0) 70%);
+      top: -100px;
+      right: -100px;
+      z-index: -1;
+      filter: blur(50px);
+      pointer-events: none;
+    }
+
+    header {
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      background-color: rgba(11, 15, 25, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header .badge {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 320px;
+      border-right: 1px solid var(--border-color);
+      padding: 20px;
+      overflow-y: auto;
+      background: rgba(11, 15, 25, 0.4);
+    }
+
+    .nav-group {
+      margin-bottom: 24px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 700;
+      padding-left: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background: rgba(59, 130, 246, 0.1);
+      color: #93c5fd;
+      border-color: rgba(59, 130, 246, 0.25);
+    }
+
+    .nav-item .method-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .method-badge.get { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .method-badge.post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .method-badge.put { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .method-badge.delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 30px 40px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: relative;
+    }
+
+    .task-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .card-header {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-title-group h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .endpoint-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+
+    .endpoint-box .method {
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .endpoint-box .path {
+      color: #93c5fd;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background: #2563eb;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    /* Response Container */
+    .response-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(10, 15, 26, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 250px;
+    }
+
+    .response-header {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .response-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-indicator.success { color: var(--success); }
+    .status-indicator.error { color: #f87171; }
+
+    .response-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      background: rgba(5, 8, 15, 0.95);
+      color: #34d399; /* Green syntax by default */
+      white-space: pre-wrap;
+    }
+
+    .code-snippet {
+      margin-top: 20px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 20px;
+    }
+
+    .code-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .code-display {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #e2e8f0;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <header>
+    <h1>Express Book Reviews Playground</h1>
+    <span class="badge">Local Server Active</span>
+  </header>
+
+  <div class="main-container">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+      <div class="nav-group">
+        <div class="nav-group-title">General Users</div>
+        <div class="nav-item active" onclick="selectTask(1)">
+          <span>1. Get All Books</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(2)">
+          <span>2. Get Book by ISBN</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(3)">
+          <span>3. Get Books by Author</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(4)">
+          <span>4. Get Books by Title</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(5)">
+          <span>5. Get Book Review</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(6)">
+          <span>6. Register User</span>
+          <span class="method-badge post">POST</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(7)">
+          <span>7. Login User</span>
+          <span class="method-badge post">POST</span>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Registered Users</div>
+        <div class="nav-item" onclick="selectTask(8)">
+          <span>8. Add/Modify Review</span>
+          <span class="method-badge put">PUT</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(9)">
+          <span>9. Delete Review</span>
+          <span class="method-badge delete">DEL</span>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Node.js Axios Methods</div>
+        <div class="nav-item" onclick="selectTask(10)">
+          <span>10. Get All (Async/Await)</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(11)">
+          <span>11. ISBN (Promises)</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(12)">
+          <span>12. Author (Promise)</span>
+          <span class="method-badge get">GET</span>
+        </div>
+        <div class="nav-item" onclick="selectTask(13)">
+          <span>13. Title (Async/Await)</span>
+          <span class="method-badge get">GET</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <div class="task-card" id="task-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2 id="current-title">Task 1: Get the book list available in the shop</h2>
+            <div class="card-subtitle" id="current-subtitle">Retrieves the absolute list of all books in the database.</div>
+          </div>
+        </div>
+
+        <div class="endpoint-box">
+          <span class="method" id="current-method" style="color: #34d399;">GET</span>
+          <span class="path" id="current-path">/</span>
+        </div>
+
+        <!-- Dynamic Inputs -->
+        <div id="dynamic-inputs"></div>
+
+        <button class="btn" onclick="executeCurrentTask()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Run Request
+        </button>
+      </div>
+
+      <!-- Response Area -->
+      <div class="response-card">
+        <div class="response-header">
+          <div class="response-title">Response JSON</div>
+          <div class="status-indicator" id="status-container">
+            <span id="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; display: inline-block;"></span>
+            <span id="status-text">Idle</span>
+          </div>
+        </div>
+        <div class="response-body" id="response-body">// Click 'Run Request' to execute this endpoint.</div>
+      </div>
+
+      <!-- Code Snippet Area for Tasks 10-13 -->
+      <div class="code-snippet" id="code-snippet" style="display: none;">
+        <div class="code-title">Node.js Method Implementation</div>
+        <div class="code-display" id="code-display"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentTaskId = 1;
+    let jwtToken = '';
+
+    const tasksData = {
+      1: {
+        title: "Task 1: Get the book list available in the shop",
+        subtitle: "Retrieve all books from the store database",
+        method: "GET",
+        path: "/",
+        inputs: []
+      },
+      2: {
+        title: "Task 2: Get the books based on ISBN",
+        subtitle: "Retrieve book information by unique ISBN code",
+        method: "GET",
+        path: "/isbn/:isbn",
+        inputs: [
+          { name: "isbn", label: "ISBN Code", value: "8", placeholder: "e.g., 1, 8, etc." }
+        ]
+      },
+      3: {
+        title: "Task 3: Get all books by Author",
+        subtitle: "Search books by author name (case-insensitive)",
+        method: "GET",
+        path: "/author/:author",
+        inputs: [
+          { name: "author", label: "Author Name", value: "Jane Austen", placeholder: "e.g., Jane Austen, Achebe" }
+        ]
+      },
+      4: {
+        title: "Task 4: Get all books based on Title",
+        subtitle: "Search books by title matching query",
+        method: "GET",
+        path: "/title/:title",
+        inputs: [
+          { name: "title", label: "Book Title", value: "Pride and Prejudice", placeholder: "e.g., Pride, Things" }
+        ]
+      },
+      5: {
+        title: "Task 5: Get book Review",
+        subtitle: "Retrieve all reviews for a book using ISBN",
+        method: "GET",
+        path: "/review/:isbn",
+        inputs: [
+          { name: "isbn", label: "ISBN Code", value: "1", placeholder: "e.g., 1, 8" }
+        ]
+      },
+      6: {
+        title: "Task 6: Register New User",
+        subtitle: "Create a new customer account in the system",
+        method: "POST",
+        path: "/register",
+        inputs: [
+          { name: "username", label: "Username", value: "john", placeholder: "Choose username" },
+          { name: "password", label: "Password", value: "pass123", placeholder: "Choose password" }
+        ]
+      },
+      7: {
+        title: "Task 7: Login as a Registered User",
+        subtitle: "Authenticate user and get JWT access token",
+        method: "POST",
+        path: "/customer/login",
+        inputs: [
+          { name: "username", label: "Username", value: "john", placeholder: "Enter username" },
+          { name: "password", label: "Password", value: "pass123", placeholder: "Enter password" }
+        ]
+      },
+      8: {
+        title: "Task 8: Add/Modify a book review",
+        subtitle: "Submit a new review or modify an existing review for a book",
+        method: "PUT",
+        path: "/customer/auth/review/:isbn",
+        inputs: [
+          { name: "isbn", label: "ISBN Code", value: "1", placeholder: "e.g., 1" },
+          { name: "review", label: "Review Content", value: "This is a truly brilliant masterpiece!", placeholder: "Your review details..." }
+        ]
+      },
+      9: {
+        title: "Task 9: Delete book review",
+        subtitle: "Delete a book review submitted by the logged-in user",
+        method: "DELETE",
+        path: "/customer/auth/review/:isbn",
+        inputs: [
+          { name: "isbn", label: "ISBN Code", value: "1", placeholder: "e.g., 1" }
+        ]
+      },
+      10: {
+        title: "Task 10: Get all books using async callback",
+        subtitle: "Uses async/await pattern with Axios to asynchronously retrieve the database",
+        method: "GET",
+        path: "/",
+        inputs: [],
+        code: `// Task 10 Implementation (Async/Await)
+async function getAllBooks() {
+  try {
+    const response = await axios.get('http://localhost:5000/');
+    console.log(response.data);
+  } catch (error) {
+    console.error(error.message);
+  }
+}`
+      },
+      11: {
+        title: "Task 11: Search by ISBN – Using Promises",
+        subtitle: "Uses Axios with Promise callbacks (.then, .catch) to query ISBN",
+        method: "GET",
+        path: "/isbn/:isbn",
+        inputs: [
+          { name: "isbn", label: "ISBN Code", value: "1", placeholder: "e.g. 1" }
+        ],
+        code: `// Task 11 Implementation (Promises)
+function getBookByISBN(isbn) {
+  axios.get('http://localhost:5000/isbn/' + isbn)
+    .then(response => {
+      console.log(response.data);
+    })
+    .catch(error => {
+      console.error(error.message);
+    });
+}`
+      },
+      12: {
+        title: "Task 12: Search by Author",
+        subtitle: "Uses Promise wrapper over books database lookup",
+        method: "GET",
+        path: "/author/:author",
+        inputs: [
+          { name: "author", label: "Author Name", value: "Jane Austen", placeholder: "Jane Austen" }
+        ],
+        code: `// Task 12 Implementation (New Promise)
+function getBooksByAuthor(author) {
+  return new Promise((resolve, reject) => {
+    // ... search matching books ...
+    resolve(matchingBooks);
+  });
+}`
+      },
+      13: {
+        title: "Task 13: Search by Title",
+        subtitle: "Uses async/await utility to retrieve book title match",
+        method: "GET",
+        path: "/title/:title",
+        inputs: [
+          { name: "title", label: "Book Title", value: "Pride and Prejudice", placeholder: "Pride and Prejudice" }
+        ],
+        code: `// Task 13 Implementation (Async/Await Function)
+async function getBooksByTitle(title) {
+  const result = await getBooksByTitleInternal(title);
+  console.log(result);
+}`
+      }
+    };
+
+    function selectTask(taskId) {
+      currentTaskId = taskId;
+      
+      // Update UI active state
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const activeNavEl = document.querySelectorAll('.nav-item')[taskId - 1 || 0];
+      if (activeNavEl) activeNavEl.classList.add('active');
+
+      const data = tasksData[taskId];
+      document.getElementById('current-title').textContent = data.title;
+      document.getElementById('current-subtitle').textContent = data.subtitle;
+      
+      const methodEl = document.getElementById('current-method');
+      methodEl.textContent = data.method;
+      methodEl.className = 'method ' + data.method.toLowerCase();
+      
+      // Styling method colors
+      if (data.method === "GET") methodEl.style.color = "#34d399";
+      if (data.method === "POST") methodEl.style.color = "#60a5fa";
+      if (data.method === "PUT") methodEl.style.color = "#fbbf24";
+      if (data.method === "DELETE") methodEl.style.color = "#f87171";
+
+      document.getElementById('current-path').textContent = data.path;
+
+      // Render dynamic inputs
+      const inputsContainer = document.getElementById('dynamic-inputs');
+      inputsContainer.innerHTML = '';
+      data.inputs.forEach(input => {
+        const div = document.createElement('div');
+        div.className = 'input-group';
+        div.innerHTML = `
+          <label for="input-${input.name}">${input.label}</label>
+          <input type="text" id="input-${input.name}" class="input-field" value="${input.value}" placeholder="${input.placeholder}">
+        `;
+        inputsContainer.appendChild(div);
+      });
+
+      // Code snippet visibility
+      const codeSnippetEl = document.getElementById('code-snippet');
+      if (data.code) {
+        codeSnippetEl.style.display = 'block';
+        document.getElementById('code-display').textContent = data.code;
+      } else {
+        codeSnippetEl.style.display = 'none';
+      }
+
+      // Reset response box
+      document.getElementById('response-body').textContent = "// Click 'Run Request' to execute this endpoint.";
+      updateStatus('idle', 'Idle');
+    }
+
+    function updateStatus(type, text) {
+      const dot = document.getElementById('status-dot');
+      const label = document.getElementById('status-text');
+      label.textContent = text;
+      
+      if (type === 'success') {
+        dot.style.background = '#10b981';
+        label.style.color = '#10b981';
+      } else if (type === 'error') {
+        dot.style.background = '#ef4444';
+        label.style.color = '#ef4444';
+      } else {
+        dot.style.background = '#9ca3af';
+        label.style.color = '#9ca3af';
+      }
+    }
+
+    async function executeCurrentTask() {
+      const data = tasksData[currentTaskId];
+      let url = data.path;
+      let bodyData = null;
+      let queryParams = '';
+
+      // Extract inputs
+      data.inputs.forEach(input => {
+        const inputVal = document.getElementById(`input-${input.name}`).value;
+        if (url.includes(`:${input.name}`)) {
+          url = url.replace(`:${input.name}`, encodeURIComponent(inputVal));
+        } else if (data.method === 'POST') {
+          if (!bodyData) bodyData = {};
+          bodyData[input.name] = inputVal;
+        } else if (data.method === 'PUT' && input.name === 'review') {
+          queryParams = `?review=${encodeURIComponent(inputVal)}`;
+        }
+      });
+
+      const fullUrl = `http://localhost:5000${url}${queryParams}`;
+      
+      updateStatus('loading', 'Executing...');
+      
+      try {
+        const options = {
+          method: data.method,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        if (bodyData) {
+          options.body = JSON.stringify(bodyData);
+        }
+
+        // Include JWT token in Authorization header for protected routes
+        if (jwtToken && (url.includes('/customer/auth/') || currentTaskId === 8 || currentTaskId === 9)) {
+          // If we logged in using a session on the server, the session cookie is normally used,
+          // but let's send it in Authorization header too, or set credentials: 'include'.
+          // Express-session uses cookie, so let's allow cookies.
+          options.credentials = 'include';
+        }
+
+        const response = await fetch(fullUrl, options);
+        const resText = await response.text();
+        
+        let formattedJson = resText;
+        try {
+          const parsed = JSON.parse(resText);
+          formattedJson = JSON.stringify(parsed, null, 2);
+          
+          // Save JWT token if login succeeded
+          if (currentTaskId === 7 && parsed.token) {
+            jwtToken = parsed.token;
+            console.log("Logged in! Token saved:", jwtToken);
+          }
+        } catch (e) {
+          // Response is not JSON
+        }
+
+        document.getElementById('response-body').textContent = formattedJson;
+        
+        if (response.ok) {
+          updateStatus('success', `Success (${response.status})`);
+        } else {
+          updateStatus('error', `Error (${response.status})`);
+        }
+      } catch (err) {
+        document.getElementById('response-body').textContent = `Fetch error: ${err.message}`;
+        updateStatus('error', 'Network Error');
+      }
+    }
+  </script>
+</body>
+</html>
